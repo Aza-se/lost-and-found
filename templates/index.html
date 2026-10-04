@@ -1,35 +1,92 @@
 {% extends 'base.html' %}
+
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h2>Unclaimed Items</h2>
-    <div class="btn-group">
-        <a href="/" class="btn btn-outline-secondary">All</a>
-        <a href="/?category=Electronics" class="btn btn-outline-primary">Electronics</a>
-        <a href="/?category=Books" class="btn btn-outline-primary">Books</a>
-        <a href="/?category=Keys" class="btn btn-outline-primary">Keys</a>
+<div class="row mb-4 align-items-center g-3">
+    <div class="col-md-6">
+        <h2 class="fw-bold mb-1">Campus Items</h2>
+        <p class="text-muted mb-0">
+            Unclaimed: <span class="badge bg-danger">{{ total_unclaimed }}</span> | 
+            Claimed: <span class="badge bg-success">{{ total_claimed }}</span>
+        </p>
+    </div>
+    <div class="col-md-6">
+        <form action="/" method="GET" class="d-flex gap-2">
+            <input type="text" name="q" class="form-control" placeholder="Search by name, location, or description..." value="{{ search_query }}">
+            {% if active_category %}<input type="hidden" name="category" value="{{ active_category }}">{% endif %}
+            {% if active_status %}<input type="hidden" name="status" value="{{ active_status }}">{% endif %}
+            <button type="submit" class="btn btn-primary"><i class="bi bi-search"></i></button>
+            {% if search_query or active_category or active_status != 'UNCLAIMED' %}
+                <a href="/" class="btn btn-outline-secondary" title="Reset Filters"><i class="bi bi-x-circle"></i></a>
+            {% endif %}
+        </form>
     </div>
 </div>
+
+<div class="d-flex flex-wrap gap-2 mb-4 align-items-center justify-content-between bg-white p-3 rounded shadow-sm border">
+    <div class="d-flex flex-wrap gap-2">
+        <a href="/?status=UNCLAIMED{% if search_query %}&q={{ search_query }}{% endif %}" 
+           class="btn btn-sm {% if active_status == 'UNCLAIMED' %}btn-primary{% else %}btn-outline-primary{% endif %}">Unclaimed</a>
+        <a href="/?status=CLAIMED{% if search_query %}&q={{ search_query }}{% endif %}" 
+           class="btn btn-sm {% if active_status == 'CLAIMED' %}btn-success{% else %}btn-outline-success{% endif %}">Claimed</a>
+        <a href="/?status=ALL{% if search_query %}&q={{ search_query }}{% endif %}" 
+           class="btn btn-sm {% if active_status == 'ALL' %}btn-dark{% else %}btn-outline-dark{% endif %}">All</a>
+    </div>
+
+    <div class="d-flex flex-wrap gap-1">
+        <a href="/?category={% if active_status %}&status={{ active_status }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}" 
+           class="badge {% if not active_category %}bg-secondary{% else %}bg-light text-dark border{% endif %} text-decoration-none py-2 px-3">All Categories</a>
+        <a href="/?category=Electronics{% if active_status %}&status={{ active_status }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}" 
+           class="badge {% if active_category == 'Electronics' %}bg-secondary{% else %}bg-light text-dark border{% endif %} text-decoration-none py-2 px-3">Electronics</a>
+        <a href="/?category=Books{% if active_status %}&status={{ active_status }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}" 
+           class="badge {% if active_category == 'Books' %}bg-secondary{% else %}bg-light text-dark border{% endif %} text-decoration-none py-2 px-3">Books</a>
+        <a href="/?category=Keys{% if active_status %}&status={{ active_status }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}" 
+           class="badge {% if active_category == 'Keys' %}bg-secondary{% else %}bg-light text-dark border{% endif %} text-decoration-none py-2 px-3">Keys</a>
+        <a href="/?category=Others{% if active_status %}&status={{ active_status }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}" 
+           class="badge {% if active_category == 'Others' %}bg-secondary{% else %}bg-light text-dark border{% endif %} text-decoration-none py-2 px-3">Others</a>
+    </div>
+</div>
+
 <div class="row">
     {% for item in items %}
-    <div class="col-md-6 mb-4">
-        <div class="card shadow-sm border-0">
-            <div class="card-body">
-                <span class="badge bg-primary mb-2">{{ item.category }}</span>
-                <h5 class="fw-bold">{{ item.item_title }}</h5>
-                <p class="text-secondary">{{ item.description }}</p>
-                <div class="bg-light p-3 rounded">
-                    <p class="mb-1 text-dark fw-semibold">🔐 Security Prompt:</p>
-                    <small class="text-muted d-block mb-2">{{ item.security_question }}</small>
-                    <form action="/claim/{{ item.id }}" method="POST" class="d-flex gap-2">
-                        <input type="text" name="security_answer" class="form-control form-control-sm" placeholder="Answer to claim..." required>
-                        <button type="submit" class="btn btn-sm btn-success">Claim</button>
-                    </form>
+    <div class="col-md-6 col-lg-4 mb-4">
+        <div class="card h-100 shadow-sm border-0 rounded-3">
+            <div class="card-body d-flex flex-column">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <span class="badge bg-primary fs-7">{{ item.category }}</span>
+                    {% if item.status == 'UNCLAIMED' %}
+                        <span class="badge bg-warning text-dark"><i class="bi bi-clock"></i> Unclaimed</span>
+                    {% else %}
+                        <span class="badge bg-success"><i class="bi bi-check-circle-fill"></i> Claimed</span>
+                    {% endif %}
+                </div>
+                <h5 class="fw-bold card-title text-dark">{{ item.item_title }}</h5>
+                <p class="text-muted small mb-2"><i class="bi bi-geo-alt-fill text-danger"></i> Found at: <strong>{{ item.location_found }}</strong></p>
+                <p class="card-text text-secondary mb-3 flex-grow-1">{{ item.description }}</p>
+
+                <div class="bg-light p-3 rounded-3 border mt-auto">
+                    <p class="mb-1 text-dark fw-semibold small"><i class="bi bi-shield-lock-fill text-primary"></i> Ownership Verification:</p>
+                    <p class="small text-muted mb-2">{{ item.security_question }}</p>
+
+                    {% if item.status == 'UNCLAIMED' %}
+                        <form action="/claim/{{ item.id }}" method="POST" class="d-flex gap-2">
+                            <input type="text" name="security_answer" class="form-control form-control-sm" placeholder="Answer..." required>
+                            <button type="submit" class="btn btn-sm btn-success fw-bold">Claim</button>
+                        </form>
+                    {% else %}
+                        <div class="alert alert-success p-1 mb-0 text-center small fw-semibold">
+                            Item Claimed
+                        </div>
+                    {% endif %}
                 </div>
             </div>
         </div>
     </div>
     {% else %}
-    <p class="text-muted">No items found!</p>
+    <div class="col-12 text-center py-5">
+        <i class="bi bi-inbox text-muted display-4 d-block mb-3"></i>
+        <h5 class="text-secondary">No items found matching your criteria.</h5>
+        <a href="/" class="btn btn-outline-primary mt-2">Clear Filters</a>
+    </div>
     {% endfor %}
 </div>
 {% endblock %}
