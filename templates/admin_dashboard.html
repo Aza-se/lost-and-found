@@ -6,10 +6,10 @@
     <span class="badge bg-success py-2 px-3"><i class="bi bi-shield-check"></i> Admin Session Active</span>
 </div>
 
-<!-- Pending Item Reports -->
+<!-- 1. Pending Item Reports -->
 <div class="card border-warning mb-4 shadow-sm">
     <div class="card-header bg-warning fw-bold text-dark d-flex justify-content-between align-items-center">
-        <span><i class="bi bi-hourglass-split"></i> Pending Item Reports</span>
+        <span><i class="bi bi-hourglass-split"></i> 1. Pending Item Reports (Needs Approval)</span>
         <span class="badge bg-dark">{{ pending_items|length }}</span>
     </div>
     <div class="card-body p-0">
@@ -20,7 +20,7 @@
                     <th>Finder Name</th>
                     <th>Category</th>
                     <th>Location</th>
-                    <th>Action</th>
+                    <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
@@ -31,9 +31,14 @@
                     <td><span class="badge bg-secondary">{{ item.category }}</span></td>
                     <td>{{ item.location_found }}</td>
                     <td>
-                        <form action="/admin/approve_item/{{ item.id }}" method="POST" class="d-inline">
-                            <button type="submit" class="btn btn-sm btn-success fw-bold">Approve</button>
-                        </form>
+                        <div class="d-flex gap-1">
+                            <form action="/admin/approve_item/{{ item.id }}" method="POST" class="d-inline">
+                                <button type="submit" class="btn btn-sm btn-success fw-bold">Approve</button>
+                            </form>
+                            <form action="/admin/reject_item/{{ item.id }}" method="POST" class="d-inline">
+                                <button type="submit" class="btn btn-sm btn-outline-danger">Reject</button>
+                            </form>
+                        </div>
                     </td>
                 </tr>
                 {% else %}
@@ -44,10 +49,94 @@
     </div>
 </div>
 
-<!-- All Catalog Items & Honor Roll Control -->
+<!-- 2. Pending Claim Requests -->
+<div class="card border-info mb-4 shadow-sm">
+    <div class="card-header bg-info text-white fw-bold d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-card-checklist"></i> 2. Pending Claim Requests (Review Student Answers)</span>
+        <span class="badge bg-light text-dark">{{ pending_claims|length }}</span>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Item Title</th>
+                    <th>Claimer Info</th>
+                    <th>Submitted Answer</th>
+                    <th>Security Answer</th>
+                    <th>Action / Notes</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for claim in pending_claims %}
+                <tr>
+                    <td><strong>{{ claim.item_title }}</strong></td>
+                    <td>{{ claim.claimer_name }}<br><small class="text-muted">{{ claim.claimer_contact }}</small></td>
+                    <td><span class="badge bg-warning text-dark">{{ claim.provided_answer }}</span></td>
+                    <td><span class="badge bg-secondary">{{ claim.security_answer }}</span></td>
+                    <td>
+                        <div class="d-flex gap-1">
+                            <form action="/admin/approve_claim/{{ claim.id }}" method="POST" class="d-flex gap-1">
+                                <input type="text" name="admin_notes" class="form-control form-control-sm" placeholder="Pickup note e.g. Handed over - ID checked" required>
+                                <button type="submit" class="btn btn-sm btn-success fw-bold text-nowrap">Approve Claim</button>
+                            </form>
+                            <form action="/admin/reject_claim/{{ claim.id }}" method="POST">
+                                <button type="submit" class="btn btn-sm btn-outline-danger">Reject</button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="5" class="text-center text-muted py-3">No pending claim requests at this time.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- 3. Claimed & Returned History Track -->
+<div class="card border-success mb-4 shadow-sm">
+    <div class="card-header bg-success text-white fw-bold d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-check-circle-fill"></i> 3. Handed Over & Returned Items History</span>
+        <span class="badge bg-light text-dark">{{ claimed_history|length }}</span>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>ID</th>
+                    <th>Item Title</th>
+                    <th>Location Found</th>
+                    <th>Returned To</th>
+                    <th>Admin Verification Notes</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in claimed_history %}
+                <tr>
+                    <td>#{{ item.id }}</td>
+                    <td><strong>{{ item.item_title }}</strong></td>
+                    <td>{{ item.location_found }}</td>
+                    <td>
+                        {% if item.claimer_name %}
+                            <strong>{{ item.claimer_name }}</strong><br><small class="text-muted">{{ item.claimer_contact }}</small>
+                        {% else %}
+                            <span class="text-muted">Direct Handover</span>
+                        {% endif %}
+                    </td>
+                    <td><span class="badge bg-success-subtle text-success border border-success">{{ item.admin_notes or 'Handed over by Security' }}</span></td>
+                </tr>
+                {% else %}
+                <tr><td colspan="5" class="text-center text-muted py-3">No claimed/returned history tracked yet.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- 4. Good Samaritan Recognition Management -->
 <div class="card border-secondary shadow-sm mb-4">
     <div class="card-header bg-dark text-white fw-bold">
-        <i class="bi bi-award"></i> Good Samaritan Honor Roll Management
+        <i class="bi bi-award"></i> 4. Good Samaritan Honor Roll Management
     </div>
     <div class="card-body p-0">
         <table class="table table-striped align-middle mb-0">
@@ -81,6 +170,8 @@
                         </form>
                     </td>
                 </tr>
+                {% else %}
+                <tr><td colspan="5" class="text-center text-muted py-3">No catalog items found.</td></tr>
                 {% endfor %}
             </tbody>
         </table>
