@@ -1,0 +1,78 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h2 class="fw-bold mb-4"><i class="bi bi-speedometer2"></i> Security Admin Control Panel</h2>
+
+<div class="card border-warning mb-4 shadow-sm">
+    <div class="card-header bg-warning fw-bold text-dark">
+        <i class="bi bi-hourglass-split"></i> Pending New Item Reports (Requires Approval to Publish)
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Title</th>
+                    <th>Category</th>
+                    <th>Location</th>
+                    <th>Description</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in pending_items %}
+                <tr>
+                    <td><strong>{{ item.item_title }}</strong></td>
+                    <td><span class="badge bg-secondary">{{ item.category }}</span></td>
+                    <td>{{ item.location_found }}</td>
+                    <td>{{ item.description }}</td>
+                    <td>
+                        <form action="/admin/approve_item/{{ item.id }}" method="POST">
+                            <button type="submit" class="btn btn-sm btn-success fw-bold">Approve & Publish</button>
+                        </form>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="5" class="text-center text-muted py-3">No pending item submissions.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="card border-info mb-4 shadow-sm">
+    <div class="card-header bg-info text-white fw-bold">
+        <i class="bi bi-card-checklist"></i> Pending Claim Requests
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Item Title</th>
+                    <th>Claimer Info</th>
+                    <th>Submitted Answer</th>
+                    <th>Correct Answer</th>
+                    <th>Admin Pickup Note & Approve</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for claim in pending_claims %}
+                <tr>
+                    <td><strong>{{ claim.item_title }}</strong></td>
+                    <td>{{ claim.claimer_name }}<br><small class="text-muted">{{ claim.claimer_contact }}</small></td>
+                    <td><span class="badge bg-warning text-dark">{{ claim.provided_answer }}</span></td>
+                    <td><span class="badge bg-secondary">{{ claim.security_answer }}</span></td>
+                    <td>
+                        <form action="/admin/approve_claim/{{ claim.id }}" method="POST" class="d-flex gap-1">
+                            <input type="text" name="admin_notes" class="form-control form-control-sm" placeholder="e.g. Taken by owner - Student ID verified" required>
+                            <button type="submit" class="btn btn-sm btn-success fw-bold text-nowrap">Approve Claim</button>
+                        </form>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="5" class="text-center text-muted py-3">No pending claim requests.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
