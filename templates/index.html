@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Unclaimed Items</h2>
+    <div class="btn-group">
+        <a href="/" class="btn btn-outline-secondary">All</a>
+        <a href="/?category=Electronics" class="btn btn-outline-primary">Electronics</a>
+        <a href="/?category=Books" class="btn btn-outline-primary">Books</a>
+        <a href="/?category=Keys" class="btn btn-outline-primary">Keys</a>
+    </div>
+</div>
+<div class="row">
+    {% for item in items %}
+    <div class="col-md-6 mb-4">
+        <div class="card shadow-sm border-0">
+            <div class="card-body">
+                <span class="badge bg-primary mb-2">{{ item.category }}</span>
+                <h5 class="fw-bold">{{ item.item_title }}</h5>
+                <p class="text-secondary">{{ item.description }}</p>
+                <div class="bg-light p-3 rounded">
+                    <p class="mb-1 text-dark fw-semibold">🔐 Security Prompt:</p>
+                    <small class="text-muted d-block mb-2">{{ item.security_question }}</small>
+                    <form action="/claim/{{ item.id }}" method="POST" class="d-flex gap-2">
+                        <input type="text" name="security_answer" class="form-control form-control-sm" placeholder="Answer to claim..." required>
+                        <button type="submit" class="btn btn-sm btn-success">Claim</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <p class="text-muted">No items found!</p>
+    {% endfor %}
+</div>
+{% endblock %}

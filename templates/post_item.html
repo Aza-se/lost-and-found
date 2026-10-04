@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register Found Item - Campus Lost & Found</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+</head>
+<body class="bg-light">
+    <nav class="navbar navbar-dark bg-secondary shadow-sm mb-4">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="/">🔍 Campus Lost & Found</a>
+            <a href="/" class="btn btn-outline-light btn-sm">Back to Feed</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="card shadow-sm p-4 border-0 rounded-3">
+                    <h3 class="mb-3 text-secondary fw-bold">Register Found Item</h3>
+                    <form action="/post" method="POST">
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Item Title</label>
+                            <input type="text" name="item_title" class="form-control" placeholder="e.g. Scientific Calculator, Blue Water Bottle" required>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Category</label>
+                                <select name="category" class="form-select">
+                                    <option value="Electronics">Electronics</option>
+                                    <option value="Books">Books / Notebooks</option>
+                                    <option value="Keys">Keys / ID Cards</option>
+                                    <option value="Others">Others</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Location Found</label>
+                                <input type="text" name="location_found" class="form-control" placeholder="e.g. Science Lab 3, Library" required>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Description</label>
+                            <textarea name="description" class="form-control" rows="3" placeholder="Describe general features without revealing security details..." required></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Security Verification Question</label>
+                            <input type="text" name="security_question" class="form-control" placeholder="e.g. What color sticker is on the back?" required>
+                            <div class="form-text">Owners must answer this question to prove ownership before retrieving the item.</div>
+                        </div>
+                        <button type="submit" class="btn btn-warning w-100 fw-bold py-2 mt-2">Publish Found Item</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+
+ 
