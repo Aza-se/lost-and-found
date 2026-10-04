@@ -138,10 +138,26 @@ def admin_dashboard():
         ORDER BY claims.id DESC
     """).fetchall()
 
+    # History of items marked TAKEN / CLAIMED
+    claimed_history = conn.execute("""
+        SELECT items.*, claims.claimer_name, claims.claimer_contact, claims.provided_answer
+        FROM items
+        LEFT JOIN claims ON claims.item_id = items.id AND claims.claim_status = 'APPROVED'
+        WHERE items.status = 'CLAIMED'
+        ORDER BY items.id DESC
+    """).fetchall()
+
+    # All public items log
     all_items = conn.execute("SELECT * FROM items ORDER BY id DESC").fetchall()
     conn.close()
 
-    return render_template("admin_dashboard.html", pending_items=pending_items, pending_claims=pending_claims, all_items=all_items)
+    return render_template(
+        "admin_dashboard.html",
+        pending_items=pending_items,
+        pending_claims=pending_claims,
+        claimed_history=claimed_history,
+        all_items=all_items
+    )
 
 @app.route("/admin/approve_item/<int:item_id>", methods=["POST"])
 def approve_item(item_id):
@@ -156,6 +172,19 @@ def approve_item(item_id):
     flash("Item approved and published live!", "success")
     return redirect(url_for("admin_dashboard"))
 
+@app.route("/admin/reject_item/<int:item_id>", methods=["POST"])
+def reject_item(item_id):
+    if not session.get("is_admin"):
+        return redirect(url_for("admin_login"))
+
+    conn = get_db_connection()
+    conn.execute("UPDATE items SET status = 'REJECTED' WHERE id = ?", (item_id,))
+    conn.commit()
+    conn.close()
+
+    flash("Item submission rejected.", "warning")
+    return redirect(url_for("admin_dashboard"))
+
 @app.route("/admin/approve_claim/<int:claim_id>", methods=["POST"])
 def approve_claim(claim_id):
     if not session.get("is_admin"):
@@ -167,9 +196,7 @@ def approve_claim(claim_id):
     claim = conn.execute("SELECT * FROM claims WHERE id = ?", (claim_id,)).fetchone()
 
     if claim:
-        # Mark claim approved
         conn.execute("UPDATE claims SET claim_status = 'APPROVED' WHERE id = ?", (claim_id,))
-        # Mark item as claimed with comment
         conn.execute("UPDATE items SET status = 'CLAIMED', admin_notes = ? WHERE id = ?", (notes, claim['item_id']))
         conn.commit()
         flash("Claim approved! Item marked as Taken by Owner.", "success")
@@ -177,10 +204,19 @@ def approve_claim(claim_id):
     conn.close()
     return redirect(url_for("admin_dashboard"))
 
+@app.route("/admin/reject_claim/<int:claim_id>", methods=["POST"])
+def reject_claim(claim_id):
+    if not session.get("is_admin"):
+        return redirect(url_for("admin_login"))
+
+    conn = get_db_connection()
+    conn.execute("UPDATE claims SET claim_status = 'REJECTED' WHERE id = ?", (claim_id,))
+    conn.commit()
+    conn.close()
+
+    flash("Claim request rejected.", "warning")
+    return redirect(url_for("admin_dashboard"))
 
 if __name__ == "__main__":
-    # Reads PORT environment variable dynamically (for Render) or defaults to 5000 (local)
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=True)
-
-
