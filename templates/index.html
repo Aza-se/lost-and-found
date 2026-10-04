@@ -1,14 +1,61 @@
 {% extends 'base.html' %}
 
 {% block content %}
+
+<!-- Motivational / Encouragement Banner -->
+<div class="p-4 p-md-5 mb-4 rounded text-bg-dark shadow position-relative overflow-hidden style-banner">
+    <div class="row align-items-center">
+        <div class="col-md-8">
+            <span class="badge bg-warning text-dark px-3 py-2 mb-2 fw-bold"><i class="bi bi-heart-pulse-fill"></i> Integrity in Action</span>
+            <h1 class="display-6 fw-bold">"No act of kindness, no matter how small, is ever wasted."</h1>
+            <p class="lead my-3 text-light">
+                Losing a notebook, keys, or phone can ruin someone’s week. When you turn in a lost item, you give someone peace of mind. Together, we build a trusted campus community!
+            </p>
+            <a href="/post" class="btn btn-warning btn-lg fw-bold"><i class="bi bi-plus-circle-fill"></i> Turn In a Lost Item</a>
+        </div>
+        <div class="col-md-4 text-center d-none d-md-block">
+            <i class="bi bi-people-fill display-1 text-warning opacity-75"></i>
+        </div>
+    </div>
+</div>
+
+<!-- Student Recognition / Good Samaritan Wall -->
+{% if honesty_heroes %}
+<div class="mb-5">
+    <div class="d-flex align-items-center gap-2 mb-3">
+        <i class="bi bi-award-fill fs-3 text-warning"></i>
+        <h3 class="fw-bold m-0">Campus Good Samaritan Honor Roll</h3>
+    </div>
+    <div class="row g-3">
+        {% for hero in honesty_heroes %}
+        <div class="col-md-4">
+            <div class="card bg-warning-subtle border-warning h-100 shadow-sm">
+                <div class="card-body d-flex align-items-center gap-3">
+                    <div class="bg-warning text-dark rounded-circle p-3 fs-3">
+                        <i class="bi bi-star-fill"></i>
+                    </div>
+                    <div>
+                        <h6 class="fw-bold mb-0">{{ hero.found_by_name or 'Anonymous Hero' }}</h6>
+                        <p class="small text-muted mb-0">Returned: <strong>{{ hero.item_title }}</strong></p>
+                        <small class="text-success fw-bold"><i class="bi bi-check-circle"></i> Honored for Integrity</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Search & Catalog -->
 <div class="row mb-4 align-items-center g-3">
     <div class="col-md-6">
-        <h2 class="fw-bold mb-1">Campus Public Catalog</h2>
+        <h3 class="fw-bold mb-1">Campus Public Catalog</h3>
         <p class="text-muted mb-0">Unclaimed: <span class="badge bg-danger">{{ total_unclaimed }}</span> | Claimed: <span class="badge bg-success">{{ total_claimed }}</span></p>
     </div>
     <div class="col-md-6">
         <form action="/" method="GET" class="d-flex gap-2">
-            <input type="text" name="q" class="form-control" placeholder="Search item, location..." value="{{ search_query }}">
+            <input type="text" name="q" class="form-control" placeholder="Search title, location..." value="{{ search_query }}">
             <button type="submit" class="btn btn-primary"><i class="bi bi-search"></i></button>
         </form>
     </div>
@@ -19,13 +66,19 @@
     {% for item in items %}
     <div class="col-md-6 col-lg-4 mb-4">
         <div class="card h-100 shadow-sm border-0">
+            {% if item.image_filename %}
+                <img src="{{ url_for('static', filename='uploads/' + item.image_filename) }}" class="card-img-top" style="height: 200px; object-fit: cover;" alt="{{ item.item_title }}">
+            {% endif %}
             <div class="card-body d-flex flex-column">
                 <div class="d-flex justify-content-between mb-2">
                     <span class="badge bg-primary">{{ item.category }}</span>
                     <span class="badge bg-warning text-dark"><i class="bi bi-clock"></i> Unclaimed</span>
                 </div>
                 <h5 class="fw-bold">{{ item.item_title }}</h5>
-                <p class="text-muted small mb-2"><i class="bi bi-geo-alt-fill text-danger"></i> {{ item.location_found }}</p>
+                <p class="text-muted small mb-1"><i class="bi bi-geo-alt-fill text-danger"></i> {{ item.location_found }}</p>
+                {% if item.found_by_name %}
+                    <p class="small text-success mb-2"><i class="bi bi-person-heart"></i> Turned in by: <strong>{{ item.found_by_name }}</strong></p>
+                {% endif %}
                 <p class="card-text text-secondary flex-grow-1">{{ item.description }}</p>
 
                 <div class="bg-light p-3 rounded border mt-auto">
@@ -43,7 +96,7 @@
         </div>
     </div>
     {% else %}
-    <div class="col-12 text-muted">No unclaimed items currently available.</div>
+    <div class="col-12 text-muted">No unclaimed items currently listed.</div>
     {% endfor %}
 </div>
 

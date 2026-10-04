@@ -9,7 +9,10 @@ CREATE TABLE items (
     description TEXT NOT NULL,
     security_question TEXT NOT NULL,
     security_answer TEXT,
-    status TEXT DEFAULT 'PENDING_APPROVAL', -- 'PENDING_APPROVAL', 'UNCLAIMED', 'CLAIMED', 'REJECTED'
+    image_filename TEXT,
+    found_by_name TEXT,
+    is_featured_hero INTEGER DEFAULT 0, -- 1 = Show in Community Honor Roll
+    status TEXT DEFAULT 'PENDING_APPROVAL',
     admin_notes TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -20,7 +23,7 @@ CREATE TABLE claims (
     claimer_name TEXT NOT NULL,
     claimer_contact TEXT NOT NULL,
     provided_answer TEXT NOT NULL,
-    claim_status TEXT DEFAULT 'PENDING_REVIEW', -- 'PENDING_REVIEW', 'APPROVED', 'REJECTED'
+    claim_status TEXT DEFAULT 'PENDING_REVIEW',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (item_id) REFERENCES items (id)
 );

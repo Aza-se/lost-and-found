@@ -1,14 +1,26 @@
 import os
 from flask import Flask, render_template, request, redirect, url_for, flash, session
+from werkzeug.utils import secure_filename
 from database import init_db, get_db_connection
 
 app = Flask(__name__)
 app.secret_key = "campus_lost_found_secure_key"
 
+# Image upload configuration
+UPLOAD_FOLDER = os.path.join('static', 'uploads')
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+
 init_db()
 
 ADMIN_USERNAME = "admin"
 ADMIN_PASSWORD = "admin123"
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
 
 # --- CLIENT ROUTES ---
 
@@ -35,6 +47,9 @@ def index():
     unclaimed_items = conn.execute(query, params).fetchall()
     claimed_items = conn.execute("SELECT * FROM items WHERE status = 'CLAIMED' ORDER BY id DESC").fetchall()
     
+    # Fetch recognized honesty heroes
+    honesty_heroes = conn.execute("SELECT * FROM items WHERE is_featured_hero = 1 ORDER BY id DESC").fetchall()
+
     total_unclaimed = conn.execute("SELECT COUNT(*) FROM items WHERE status = 'UNCLAIMED'").fetchone()[0]
     total_claimed = conn.execute("SELECT COUNT(*) FROM items WHERE status = 'CLAIMED'").fetchone()[0]
     
@@ -44,6 +59,7 @@ def index():
         "index.html",
         items=unclaimed_items,
         claimed_items=claimed_items,
+        honesty_heroes=honesty_heroes,
         search_query=search_query,
         active_category=category_filter,
         total_unclaimed=total_unclaimed,
@@ -59,21 +75,30 @@ def post_item():
         description = request.form.get("description", "").strip()
         question = request.form.get("security_question", "").strip()
         answer = request.form.get("security_answer", "").strip()
+        finder_name = request.form.get("found_by_name", "Anonymous Good Samaritan").strip()
 
         if not title or not location or not description or not question:
             flash("Please fill in all required fields.", "danger")
             return render_template("post_item.html")
 
+        # Handle Image Upload
+        filename = None
+        if 'item_image' in request.files:
+            file = request.files['item_image']
+            if file and allowed_file(file.filename):
+                filename = secure_filename(file.filename)
+                file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+
         conn = get_db_connection()
         conn.execute(
-            """INSERT INTO items (item_title, category, location_found, description, security_question, security_answer, status)
-               VALUES (?, ?, ?, ?, ?, ?, 'PENDING_APPROVAL')""",
-            (title, category, location, description, question, answer)
+            """INSERT INTO items (item_title, category, location_found, description, security_question, security_answer, image_filename, found_by_name, status)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'PENDING_APPROVAL')""",
+            (title, category, location, description, question, answer, filename, finder_name)
         )
         conn.commit()
         conn.close()
 
-        flash("Your report was submitted! It will appear on the live board once approved by Campus Security.", "info")
+        flash("🌟 Thank you for your honesty! Your report was submitted and will appear on the board once approved.", "success")
         return redirect(url_for("index"))
 
     return render_template("post_item.html")
@@ -97,7 +122,7 @@ def submit_claim(item_id):
     conn.commit()
     conn.close()
 
-    flash("Claim request submitted! Campus Admin will review your answer and contact you.", "success")
+    flash("Claim request submitted! Campus Security will review your request.", "success")
     return redirect(url_for("index"))
 
 
@@ -138,16 +163,14 @@ def admin_dashboard():
         ORDER BY claims.id DESC
     """).fetchall()
 
-    # History of items marked TAKEN / CLAIMED
     claimed_history = conn.execute("""
-        SELECT items.*, claims.claimer_name, claims.claimer_contact, claims.provided_answer
+        SELECT items.*, claims.claimer_name, claims.claimer_contact
         FROM items
         LEFT JOIN claims ON claims.item_id = items.id AND claims.claim_status = 'APPROVED'
         WHERE items.status = 'CLAIMED'
         ORDER BY items.id DESC
     """).fetchall()
 
-    # All public items log
     all_items = conn.execute("SELECT * FROM items ORDER BY id DESC").fetchall()
     conn.close()
 
@@ -158,6 +181,22 @@ def admin_dashboard():
         claimed_history=claimed_history,
         all_items=all_items
     )
+
+@app.route("/admin/toggle_hero/<int:item_id>", methods=["POST"])
+def toggle_hero(item_id):
+    if not session.get("is_admin"):
+        return redirect(url_for("admin_login"))
+
+    conn = get_db_connection()
+    item = conn.execute("SELECT is_featured_hero FROM items WHERE id = ?", (item_id,)).fetchone()
+    if item:
+        new_status = 0 if item['is_featured_hero'] == 1 else 1
+        conn.execute("UPDATE items SET is_featured_hero = ? WHERE id = ?", (new_status, item_id))
+        conn.commit()
+        flash("Honesty recognition status updated!", "success")
+
+    conn.close()
+    return redirect(url_for("admin_dashboard"))
 
 @app.route("/admin/approve_item/<int:item_id>", methods=["POST"])
 def approve_item(item_id):
@@ -170,19 +209,6 @@ def approve_item(item_id):
     conn.close()
 
     flash("Item approved and published live!", "success")
-    return redirect(url_for("admin_dashboard"))
-
-@app.route("/admin/reject_item/<int:item_id>", methods=["POST"])
-def reject_item(item_id):
-    if not session.get("is_admin"):
-        return redirect(url_for("admin_login"))
-
-    conn = get_db_connection()
-    conn.execute("UPDATE items SET status = 'REJECTED' WHERE id = ?", (item_id,))
-    conn.commit()
-    conn.close()
-
-    flash("Item submission rejected.", "warning")
     return redirect(url_for("admin_dashboard"))
 
 @app.route("/admin/approve_claim/<int:claim_id>", methods=["POST"])
@@ -202,19 +228,6 @@ def approve_claim(claim_id):
         flash("Claim approved! Item marked as Taken by Owner.", "success")
 
     conn.close()
-    return redirect(url_for("admin_dashboard"))
-
-@app.route("/admin/reject_claim/<int:claim_id>", methods=["POST"])
-def reject_claim(claim_id):
-    if not session.get("is_admin"):
-        return redirect(url_for("admin_login"))
-
-    conn = get_db_connection()
-    conn.execute("UPDATE claims SET claim_status = 'REJECTED' WHERE id = ?", (claim_id,))
-    conn.commit()
-    conn.close()
-
-    flash("Claim request rejected.", "warning")
     return redirect(url_for("admin_dashboard"))
 
 if __name__ == "__main__":
